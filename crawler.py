@@ -6,6 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from tqdm import trange
 
 MAX_PAGES = 11
 
@@ -21,7 +22,7 @@ visited = set()
 
 engine_index: dict[set[str]] = defaultdict(set)
 
-for _ in range(MAX_PAGES):
+for _ in trange(MAX_PAGES):
     if len(urls) == 0:
         break
     url = urls.pop()
