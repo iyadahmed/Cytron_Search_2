@@ -43,7 +43,11 @@ for _ in (pbar := trange(MAX_PAGES)):
         + ("..." * (len(url) > MAX_URL_PROGRESS_BAR_STRING_LENGTH))
     )
 
-    driver.get(url)
+    try:
+        driver.get(url)
+    except Exception as e:
+        print(f"Failed to visit {url}")
+        continue
 
     soup = BeautifulSoup(driver.page_source, features="lxml")
     clean_text = soup.get_text()
