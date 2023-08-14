@@ -11,6 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from crawler_state import CrawlerState
 
 MAX_PAGES = 11
+MAX_URL_PROGRESS_BAR_STRING_LENGTH = 50
 
 
 # https://web.archive.org/web/20230814145816/https://www.selenium.dev/blog/2023/headless-is-going-away/
@@ -30,12 +31,18 @@ else:
     state.urls_queue.append("https://www.wikipedia.org/")
 
 
-for _ in trange(MAX_PAGES):
+for _ in (pbar := trange(MAX_PAGES)):
     if len(state.urls_queue) == 0:
         break
     url = state.urls_queue.pop()
     assert url not in state.visited_urls
     state.visited_urls.add(url)
+
+    pbar.set_description(
+        f"Visiting {url[:MAX_URL_PROGRESS_BAR_STRING_LENGTH]}"
+        + ("..." * (len(url) > MAX_URL_PROGRESS_BAR_STRING_LENGTH))
+    )
+
     driver.get(url)
 
     soup = BeautifulSoup(driver.page_source, features="lxml")
