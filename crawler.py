@@ -1,12 +1,12 @@
-from collections import defaultdict
 import pickle
+from collections import defaultdict
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
 from tqdm import trange
+from webdriver_manager.chrome import ChromeDriverManager
 
 MAX_PAGES = 11
 
