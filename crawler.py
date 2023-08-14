@@ -1,5 +1,5 @@
 import pickle
-from collections import defaultdict
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -8,7 +8,10 @@ from selenium.webdriver.common.by import By
 from tqdm import trange
 from webdriver_manager.chrome import ChromeDriverManager
 
+from crawler_state import CrawlerState
+
 MAX_PAGES = 11
+
 
 # https://web.archive.org/web/20230814145816/https://www.selenium.dev/blog/2023/headless-is-going-away/
 options = webdriver.ChromeOptions()
@@ -17,35 +20,40 @@ driver = webdriver.Chrome(
     service=ChromeService(ChromeDriverManager().install()), options=options
 )
 
-urls = ["https://www.wikipedia.org/"]
-visited = set()
+crawler_state_path = Path(__file__).parent / "crawler_state.bin"
 
-engine_index: dict[set[str]] = defaultdict(set)
+if crawler_state_path.exists():
+    with open(crawler_state_path, "rb") as file:
+        state: CrawlerState = pickle.load(file)
+else:
+    state = CrawlerState()
+    state.urls_queue.append("https://www.wikipedia.org/")
+
 
 for _ in trange(MAX_PAGES):
-    if len(urls) == 0:
+    if len(state.urls_queue) == 0:
         break
-    url = urls.pop()
-    assert url not in visited
-    visited.add(url)
+    url = state.urls_queue.pop()
+    assert url not in state.visited_urls
+    state.visited_urls.add(url)
     driver.get(url)
 
     soup = BeautifulSoup(driver.page_source, features="lxml")
     clean_text = soup.get_text()
 
     for word in clean_text.split():
-        engine_index[word.lower()].add(url)
+        state.engine_index[word.lower()].add(url)
 
     for e in driver.find_elements(By.CSS_SELECTOR, "a[href]"):
         sub_url = e.get_attribute("href")
         assert sub_url is not None
-        if sub_url in visited:
+        if sub_url in state.visited_urls:
             continue
-        urls.append(sub_url)
+        state.urls_queue.append(sub_url)
 
 driver.quit()
 
 
-# Dump engine index
-with open("engine_index.bin", "wb") as file:
-    pickle.dump(engine_index, file)
+# Save crawler state
+with open(crawler_state_path, "wb") as file:
+    pickle.dump(state, file)
