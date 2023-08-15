@@ -29,7 +29,7 @@ with open("hashed_keywords.bin", "wb") as file:
         data = long_long_packer.pack(keyword_hash)
         file.write(data)
 
-
+# Sort on disk
 with open("hashed_keywords.bin", "r+b") as file:
     mm = mmap.mmap(file.fileno(), 0)
     arr = np.ndarray.__new__(
