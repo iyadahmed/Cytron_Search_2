@@ -35,7 +35,7 @@ with open("hashed_keywords.bin", "r+b") as file:
     arr = np.ndarray.__new__(
         np.ndarray, buffer=mm, dtype=np.int64, shape=(mm.size() // 8,)
     )
-    arr.sort(kind="quicksort")
+    arr.sort(kind="heapsort")
 
 
 # Search for a keyword
