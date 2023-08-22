@@ -1,59 +1,41 @@
-import mmap
-from struct import Struct
+from collections import deque
+from pathlib import Path
 
-import numpy as np
 from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.firefox.service import Service as FirefoxService
 
-long_long_packer = Struct("q")
+gecko_path = (Path(__file__).parent / "geckodriver").as_posix()
+gecko_options = webdriver.FirefoxOptions()
+gecko_options.add_argument("--headless")
+gecko_service = FirefoxService(gecko_path, log_output="geckodriver.log")
+gecko_driver = webdriver.Firefox(service=gecko_service, options=gecko_options)
 
-options = webdriver.ChromeOptions()
-# https://web.archive.org/web/20230814145816/https://www.selenium.dev/blog/2023/headless-is-going-away/
-options.add_argument("--headless=new")
-driver = webdriver.Chrome(
-    service=ChromeService(ChromeDriverManager().install()), options=options
-)
-
-
-driver.get("https://www.wikipedia.org/")
+urls_queue: deque[str] = deque(["https://www.wikipedia.org/"])
 
 
-# Index page content
-clean_text = BeautifulSoup(driver.page_source, "lxml").get_text()
-with open("hashed_keywords.bin", "wb") as file:
-    for keyword in clean_text.split():
-        keyword_hash = hash(keyword.lower())
-        data = long_long_packer.pack(keyword_hash)
-        file.write(data)
+def crawl(url: str):
+    gecko_driver.get(url)
 
-# Sort on disk
-with open("hashed_keywords.bin", "r+b") as file:
-    mm = mmap.mmap(file.fileno(), 0)
-    arr = np.ndarray.__new__(
-        np.ndarray, buffer=mm, dtype=np.int64, shape=(mm.size() // 8,)
+    clean_text = BeautifulSoup(gecko_driver.page_source, "lxml").get_text(
+        separator=" ", strip=True
     )
-    arr.sort(kind="heapsort")
+    print(clean_text)
+    # TODO: Index page content
+
+    # Find all links
+    link_elements = gecko_driver.find_elements(By.TAG_NAME, "a")
+    for e in link_elements:
+        try:
+            link = e.get_attribute("href")
+            if link is not None:
+                urls_queue.append(link)
+        except Exception:
+            continue
 
 
-# Search for a keyword
-with open("hashed_keywords.bin", "r+b") as file:
-    mm = mmap.mmap(file.fileno(), 0)
-    arr = np.ndarray.__new__(
-        np.ndarray, buffer=mm, dtype=np.int64, shape=(mm.size() // 8,)
-    )
-    query = hash("google")
-    i = arr.searchsorted(query)
-    print(arr[i] == query)
+while len(urls_queue) > 0:
+    crawl(urls_queue.popleft())
 
-# Find all links
-link_elements = driver.find_elements(By.TAG_NAME, "a")
-for e in link_elements:
-    try:
-        link = e.get_attribute("href")
-    except Exception:
-        continue
-
-driver.quit()
+gecko_driver.quit()
