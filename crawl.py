@@ -1,4 +1,3 @@
-import csv
 from collections import deque
 from pathlib import Path
 
@@ -15,9 +14,7 @@ gecko_driver = webdriver.Firefox(service=gecko_service, options=gecko_options)
 
 urls_queue: deque[str] = deque(["https://www.wikipedia.org/"])
 visited_urls: set[str] = set()
-with open("crawl_result.csv", "w") as csv_file:
-    csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["text", "url"])
+with open("crawled_text.txt", "w") as crawled_text_file:
 
     def crawl(url: str):
         if url in visited_urls:
@@ -29,7 +26,7 @@ with open("crawl_result.csv", "w") as csv_file:
         clean_text = BeautifulSoup(gecko_driver.page_source, "lxml").get_text(
             separator=" ", strip=True
         )
-        csv_writer.writerow([clean_text, url])
+        crawled_text_file.write(clean_text + "\n")
 
         # Find all links
         link_elements = gecko_driver.find_elements(By.TAG_NAME, "a")
