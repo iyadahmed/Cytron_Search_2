@@ -23,6 +23,7 @@ with open("crawl_result.csv", "w") as csv_file:
         if url in visited_urls:
             return
         visited_urls.add(url)
+        print(f"Visiting {url}")
         gecko_driver.get(url)
 
         clean_text = BeautifulSoup(gecko_driver.page_source, "lxml").get_text(
